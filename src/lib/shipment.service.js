@@ -57,7 +57,6 @@ class ShipmentService {
     
     async createShipment(data) {
         const shipmentData = createShipmentData(data);
-        
         const materialIds = data.materials.map(m => m.materialId);
         const [vehicleCapacity, materials] = await Promise.all([
             VechicleType.findOne({ _id: data.vehicleType }),
@@ -102,22 +101,23 @@ class ShipmentService {
 
         await shipment.save();
 
-        const shipmentMaterials = data.materials.map(materialItem => ({
+        const shipmentMaterials = data.materials.map((materialItem, index) => ({
             shipmentId: shipment._id,
             materialId: materialItem.materialId,
-            quantity: materialItem.quantity
+            quantity: materialItem.quantity,
+            orderNumber: data.orderNumber[index]
         }));
 
         const shipmentSources = data.source.map((location, index) => ({
             shipmentId: shipment._id,
             sourceLocation: location,
-            orderNumber: shipmentData.orderNumber[index]
+            orderNumber: data.orderNumber[index]
         }));
 
         const shipmentDestinations = data.destination.map((location, index) => ({
             shipmentId: shipment._id,
             destinationLocation: location,
-            orderNumber: shipmentData.orderNumber[index]
+            orderNumber: data.orderNumber[index]
         }));
 
         await Promise.all([
@@ -182,7 +182,8 @@ class ShipmentService {
                 materialsToInsert.push({
                     shipmentId: shipment._id,
                     materialId: materialItem.materialId,
-                    quantity: materialItem.quantity
+                    quantity: materialItem.quantity,
+                    orderNumber: materialItem.orderNumber
                 });
             }
 
@@ -282,15 +283,56 @@ class ShipmentService {
     }
 
     async getShipmentStatusSummary(shipmentId) {
-        const [shipment, sources, destinations] = await Promise.all([
+        const [shipment, sources, destinations, shipmentMaterials] = await Promise.all([
             Shipment.findById(shipmentId),
             ShipmentSources.find({ shipmentId }),
-            ShipmentDestinations.find({ shipmentId })
+            ShipmentDestinations.find({ shipmentId }),
+            ShipmentMaterial.find({ shipmentId }).populate('materialId')
         ]);
 
         if (!shipment) {
             throw new Error('Shipment not found');
         }
+
+        const orderMap = new Map();
+
+        sources.forEach(s => {
+            if (!orderMap.has(s.orderNumber)) {
+                orderMap.set(s.orderNumber, { orderNumber: s.orderNumber, pickups: [], drops: [], materials: [] });
+            }
+            orderMap.get(s.orderNumber).pickups.push({
+                id: s._id,
+                location: s.sourceLocation,
+                status: s.status
+            });
+        });
+
+        destinations.forEach(d => {
+            if (!orderMap.has(d.orderNumber)) {
+                orderMap.set(d.orderNumber, { orderNumber: d.orderNumber, pickups: [], drops: [], materials: [] });
+            }
+            orderMap.get(d.orderNumber).drops.push({
+                id: d._id,
+                location: d.destinationLocation,
+                status: d.status
+            });
+        });
+
+        shipmentMaterials.forEach(sm => {
+            if (!orderMap.has(sm.orderNumber)) {
+                orderMap.set(sm.orderNumber, { orderNumber: sm.orderNumber, pickups: [], drops: [], materials: [] });
+            }
+            orderMap.get(sm.orderNumber).materials.push({
+                id: sm._id,
+                materialId: sm.materialId._id,
+                materialName: sm.materialId.name,
+                quantity: sm.quantity,
+                weightPerUnit: sm.materialId.weightPerUnit,
+                volumePerUnit: sm.materialId.volumePerUnit
+            });
+        });
+
+        const orders = Array.from(orderMap.values());
 
         return {
             shipment: {
@@ -298,18 +340,10 @@ class ShipmentService {
                 status: shipment.status,
                 groupId: shipment.groupId
             },
-            pickups: sources.map(s => ({
-                id: s._id,
-                location: s.sourceLocation,
-                orderNumber: s.orderNumber,
-                status: s.status
-            })),
-            drops: destinations.map(d => ({
-                id: d._id,
-                location: d.destinationLocation,
-                orderNumber: d.orderNumber,
-                status: d.status
-            }))
+            orders,
+            weight: shipment.totalWeight,
+            volume: shipment.totalVolume,
+            quantity: shipment.totalQuantity
         };
     }
 }

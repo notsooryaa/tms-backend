@@ -16,6 +16,11 @@ const shipmentMaterialSchema = new mongoose.Schema({
         required: true,
         min: 0
     },
+    orderNumber: {
+        type: Number,
+        required: true,
+        min: 0
+    },
 }, {
     timestamps: true
 });

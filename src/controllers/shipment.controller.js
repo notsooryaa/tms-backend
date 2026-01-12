@@ -6,6 +6,7 @@ class ShipmentController {
     constructor() {
         this.getAllShipments = this.getAllShipments.bind(this);
         this.getShipmentById = this.getShipmentById.bind(this);
+        this.getShipmentStatusSummary = this.getShipmentStatusSummary.bind(this);
         this.createShipment = this.createShipment.bind(this);
         this.updateShipment = this.updateShipment.bind(this);
         this.deleteShipment = this.deleteShipment.bind(this);
@@ -34,10 +35,19 @@ class ShipmentController {
         }
     }
 
+    async getShipmentStatusSummary(req, res) {
+        try {
+            const validId = await validateShipment(req.params);
+            const summary = await ShipmentService.getShipmentStatusSummary(validId.id);
+            res.status(200).json(summary);
+        } catch (error) {
+            res.status(500).json({ message: 'Error fetching shipment status summary', error: error.message });
+        }
+    }
+
     async createShipment(req, res) {
         try {
             const data = await validateCreate(req.body);
-            console.log(data)
             const newShipment = await ShipmentService.createShipment(data);
             res.status(201).json(newShipment);
         } catch (error) {

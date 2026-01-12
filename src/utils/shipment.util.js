@@ -47,7 +47,6 @@ function createShipmentData(data) {
         transportType: data.transportType,
         vehicleType: data.vehicleType,
         materials: data.materials,
-        orderNumber: data.orderNumber,
         groupId: data.groupId
     };
 };

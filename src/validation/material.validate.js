@@ -7,13 +7,17 @@ const materialSchema = joi.object({
 const createMaterialSchema = joi.object({
     name: joi.string().required(),
     description: joi.string().required(),
-    category: joi.string().hex().length(24).required()
+    category: joi.string().hex().length(24).required(),
+    weightPerUnit: joi.number().min(0).required(),
+    volumePerUnit: joi.number().min(0).required(),
 });
 
 const updateMaterialSchema = joi.object({
     name: joi.string(),
     description: joi.string(),
-    category: joi.string().hex().length(24)
+    category: joi.string().hex().length(24),
+    weightPerUnit: joi.number().min(0),
+    volumePerUnit: joi.number().min(0),
 });
 
 async function validateMaterial(data) {
