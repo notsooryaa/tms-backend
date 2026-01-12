@@ -14,18 +14,15 @@ const uploadXLSX = async (req, res, next) => {
     let destinationArr = [];
     let materialArr = [];
     let orderNumberArr = [];
-    let weightArr = [];
-    let volumeArr = [];
-    let quantityArr = [];
 
     jsonData.forEach((item) => {
       sourceArr.push(item.src);
       destinationArr.push(item.des);
-      materialArr.push(item.material);
+      materialArr.push({
+        materialId: item.materialId,
+        quantity: item.quantity
+      });
       orderNumberArr.push(item.orderNumber);
-      weightArr.push(item.weight);
-      volumeArr.push(item.volume);
-      quantityArr.push(item.quantity);
     });
     
     return {
@@ -33,11 +30,8 @@ const uploadXLSX = async (req, res, next) => {
       destination: destinationArr,
       transportType: "6960a1df44fa99b87e7125a0",
       vehicleType: "6960a8f0b390967482e6160a",
-      material: materialArr,
+      materials: materialArr,
       orderNumber: orderNumberArr,
-      weight: weightArr,
-      volume: volumeArr,
-      quantity: quantityArr,
       groupId: jsonData[0].groupId,
     };
   } catch (err) {
@@ -52,11 +46,8 @@ function createShipmentData(data) {
     return {
         transportType: data.transportType,
         vehicleType: data.vehicleType,
-        material: data.material,
+        materials: data.materials,
         orderNumber: data.orderNumber,
-        weight: data.weight,
-        volume: data.volume,
-        quantity: data.quantity,
         groupId: data.groupId
     };
 };

@@ -11,31 +11,29 @@ const shipmentSchema = new mongoose.Schema({
         ref: 'VechicleType',
         required: true
     },
-    material: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'Material',
-        required: true
-    },
-    orderNumber: {
-        type: [Number],
+    totalWeight: {
+        type: Number,
         required: true,
-        unique: true
+        min: 0
     },
-    weight: {
-        type: [Number],
-        required: true
+    totalVolume: {
+        type: Number,
+        required: true,
+        min: 0
     },
-    volume: {
-        type: [Number],
-        required: true
-    },
-    quantity: {
-        type: [Number],
-        required: true
+    totalQuantity: {
+        type: Number,
+        required: true,
+        min: 0
     },
     groupId: {
         type: Number,
         required: true
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'in-transit', 'completed', 'cancelled'],
+        default: 'pending'
     }
 }, { timestamps: true });
 

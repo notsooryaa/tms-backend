@@ -13,6 +13,11 @@ const shipmentSourcesSchema = new mongoose.Schema({
     orderNumber: {
         type: Number,
         required: true
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'picked-up', 'cancelled'],
+        default: 'pending'
     }
 }, {
     timestamps: true

@@ -13,6 +13,16 @@ const materialSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'MaterialCategory',
         required: true
+    },
+    weightPerUnit: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    volumePerUnit: {
+        type: Number,
+        required: true,
+        min: 0
     }
 }, { timestamps: true });
 

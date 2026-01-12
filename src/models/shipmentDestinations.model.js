@@ -13,6 +13,11 @@ const shipmentDestinationsSchema = new mongoose.Schema({
     orderNumber: {
         type: Number,
         required: true
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'in-transit', 'delivered', 'cancelled'],
+        default: 'pending'
     }
 }, {
     timestamps: true
