@@ -57,29 +57,55 @@ class ShipmentService {
     
     async createShipment(data) {
         const shipmentData = createShipmentData(data);
-        const materialIds = data.materials.map(m => m.materialId);
-        const [vehicleCapacity, materials] = await Promise.all([
-            VechicleType.findOne({ _id: data.vehicleType }),
-            Material.find({ _id: { $in: materialIds } })
-        ]);
+        
+        const flattenedMaterials = data.materials.flat();
+        
+        const hasMaterialNames = flattenedMaterials.some(m => m.materialName);
+        let materials;
+        
+        if (hasMaterialNames) {
+            const materialNames = flattenedMaterials.map(m => m.materialName);
+            const [vehicleCapacity, foundMaterials] = await Promise.all([
+                VechicleType.findOne({ _id: data.vehicleType }),
+                Material.find({ name: { $in: materialNames } })
+            ]);
+            materials = foundMaterials;
+            var vehicleCapacityVar = vehicleCapacity;
+        } else {
+            const materialIds = flattenedMaterials.map(m => m.materialId);
+            const [vehicleCapacity, foundMaterials] = await Promise.all([
+                VechicleType.findOne({ _id: data.vehicleType }),
+                Material.find({ _id: { $in: materialIds } })
+            ]);
+            materials = foundMaterials;
+            var vehicleCapacityVar = vehicleCapacity;
+        }
+        
+        const vehicleCapacity = vehicleCapacityVar;
 
         if (!vehicleCapacity) {
             throw new Error('Vehicle type not found');
         }
 
-        const materialMap = new Map(materials.map(m => [m._id.toString(), m]));
+        const materialMap = hasMaterialNames
+            ? new Map(materials.map(m => [m.name, m]))
+            : new Map(materials.map(m => [m._id.toString(), m]));
 
         let totalWeight = 0;
         let totalVolume = 0;
         let totalQuantity = 0;
 
-        for (const materialItem of data.materials) {
-            const material = materialMap.get(materialItem.materialId.toString());
+        for (const materialItem of flattenedMaterials) {
+            const materialKey = hasMaterialNames 
+                ? materialItem.materialName 
+                : materialItem.materialId.toString();
+            const material = materialMap.get(materialKey);
             if (!material) {
-                throw new Error(`Material with ID ${materialItem.materialId} not found`);
+                const identifier = hasMaterialNames ? `name ${materialItem.materialName}` : `ID ${materialItem.materialId}`;
+                throw new Error(`Material with ${identifier} not found`);
             }
 
-            const quantity = materialItem.quantity;
+            const quantity = parseFloat(materialItem.quantity);
             totalWeight += material.weightPerUnit * quantity;
             totalVolume += material.volumePerUnit * quantity;
             totalQuantity += quantity;
@@ -101,12 +127,20 @@ class ShipmentService {
 
         await shipment.save();
 
-        const shipmentMaterials = data.materials.map((materialItem, index) => ({
-            shipmentId: shipment._id,
-            materialId: materialItem.materialId,
-            quantity: materialItem.quantity,
-            orderNumber: data.orderNumber[index]
-        }));
+        const shipmentMaterials = [];
+        data.materials.forEach((materialGroup, index) => {
+            const orderNumber = data.orderNumber[index];
+            materialGroup.forEach(materialItem => {
+                const materialKey = hasMaterialNames ? materialItem.materialName : materialItem.materialId.toString();
+                const material = materialMap.get(materialKey);
+                shipmentMaterials.push({
+                    shipmentId: shipment._id,
+                    materialId: material._id,
+                    quantity: materialItem.quantity,
+                    orderNumber: orderNumber
+                });
+            });
+        });
 
         const shipmentSources = data.source.map((location, index) => ({
             shipmentId: shipment._id,

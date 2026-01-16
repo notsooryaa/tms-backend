@@ -1,8 +1,6 @@
-const express = require("express");
-const multer = require("multer");
 const XLSX = require("xlsx");
 
-const uploadXLSX = async (req, res, next) => {
+const uploadXLSX = async (req, res) => {
   try {
     let path = req.file.path;
     var workbook = XLSX.readFile(path);
@@ -18,18 +16,27 @@ const uploadXLSX = async (req, res, next) => {
     jsonData.forEach((item) => {
       sourceArr.push(item.src);
       destinationArr.push(item.des);
-      materialArr.push({
-        materialId: item.materialId,
-        quantity: item.quantity
-      });
+      
+      const materialNames = item.materialName.toString().split(',').map(name => name.trim());
+      const quantities = item.quantity.toString().split(',').map(qty => qty.trim());
+      
+      const materialList = materialNames.map((materialName, index) => ({
+        materialName: materialName,
+        quantity: quantities[index] || quantities[0]
+      }));
+      
+      materialArr.push(materialList);
+      
       orderNumberArr.push(item.orderNumber);
     });
+
+    console.log(materialArr)
     
     return {
       source: sourceArr,
       destination: destinationArr,
-      transportType: "6960a1df44fa99b87e7125a0",
-      vehicleType: "6960a8f0b390967482e6160a",
+      transportType: req.body.transportType,
+      vehicleType: req.body.vehicleType,
       materials: materialArr,
       orderNumber: orderNumberArr,
       groupId: jsonData[0].groupId,
